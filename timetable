@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My College Timetable</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f7;
+        }
+
+        .container {
+            margin: 20px auto;
+            max-width: 1200px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 2em;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            border: 2px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+            padding: 10px 20px;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .timetable-container {
+            margin: 20px auto;
+            overflow-x: auto;
+        }
+
+        .ht_master .htCore th,
+        .ht_master .htCore td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 10px;
+        }
+
+        .ht_master .htCore th {
+            background-color: #007bff;
+            color: #fff;
+            font-size: 1.1em;
+        }
+
+        .ht_master .htCore td {
+            font-size: 1em;
+        }
+
+        .lunch-break {
+            background-color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        .elapsed {
+            background-color: rgba(0, 0, 0, 0.1);
+            color: #999;
+        }
+
+        .upcoming {
+            background-color: #d1e7dd;
+        }
+
+        .cell-content {
+            font-size: 1em;
+            padding: 8px;
+        }
+
+        .weekend-message {
+            display: none;
+            text-align: center;
+            font-size: 2em;
+            color: #007bff;
+            margin-top: 20px;
+        }
+
+        .popper {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            background: url('https://www.flaticon.com/svg/static/icons/svg/3300/3300955.svg') no-repeat center center;
+            background-size: contain;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1 class="text-center"><i class="fa fa-calendar-alt"></i> Editable College Timetable</h1>
+        <div class="form-group text-center">
+            <label for="email-input"><i class="fa fa-envelope"></i> Enter your email:</label>
+            <input type="email" id="email-input" class="form-control" style="max-width: 400px; margin: 0 auto;"
+                required>
+            <button id="send-next-class" class="btn btn-primary ml-2"><i class="fa fa-paper-plane"></i> Send Next
+                Class</button>
+
+        </div>
+        <div id="timetable" class="timetable-container"></div>
+        <div class="text-center">
+            <button id="save-button" class="btn btn-primary mt-3"><i class="fa fa-save"></i> Save Timetable</button>
+        </div>
+        <div id="weekend-message" class="weekend-message">
+            <div class="popper"></div>
+            <div class="popper"></div>
+            <div class="popper"></div>
+            <p>Enjoy the Weekend!</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+  
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const container = document.getElementById('timetable');
+            const weekendMessage = document.getElementById('weekend-message');
+            const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const currentDay = now.toLocaleString('en-IN', { weekday: 'long' });
+            const currentTime = `${('0' + now.getHours()).slice(-2)}:${('0' + now.getMinutes()).slice(-2)}`;
+
+            if (currentDay === 'Saturday' || currentDay === 'Sunday') {
+                weekendMessage.style.display = 'block';
+                return;
+            }
+
+            const data = [
+                ['Day', '9:00 - 10:00', '10:00 - 11:00', '11:00 - 12:00', '12:00 - 13:00', '13:00 - 14:00', '14:00 - 15:00', '15:00 - 16:00', '16:00 - 17:00'],
+                ['Monday', 'Math', 'Physics', 'Chemistry', 'Biology', 'Lunch Break', 'History', 'English', 'Math'],
+                ['Tuesday', 'Physics', 'Math', 'English', 'History', 'Lunch Break', 'Chemistry', 'Biology', 'Physics'],
+                ['Wednesday', 'Chemistry', 'Physics', 'Math', 'English', 'Lunch Break', 'Biology', 'History', 'Chemistry'],
+                ['Thursday', 'Biology', 'Chemistry', 'Physics', 'Math', 'Lunch Break', 'English', 'Math', 'Biology'],
+                ['Friday', 'History', 'Biology', 'Chemistry', 'Physics', 'Lunch Break', 'Math', 'Chemistry', 'History'],
+                // ['Saturday', 'History', 'Biology', 'Chemistry', 'Physics', 'Lunch Break', 'Math', 'Chemistry', 'History'],
+                // ['Sunday', 'History', 'Biology', 'Chemistry', 'Physics', 'Lunch Break', 'Math', 'Chemistry', 'History']
+            ];
+
+            const hot = new Handsontable(container, {
+                data: data,
+                // colHeaders: data[0],
+                // rowHeaders: true,
+                contextMenu: true,
+                manualColumnResize: true,
+                manualRowResize: true,
+                licenseKey: 'non-commercial-and-evaluation',
+                width: '100%',
+                height: 'auto',
+                stretchH: 'all',
+            });
+
+            document.getElementById('save-button').addEventListener('click', function () {
+                const updatedData = hot.getData();
+                console.log('Updated Timetable:', updatedData);
+                // Here you can save the updatedData to a server or local storage as needed
+            });
+
+            document.getElementById('send-next-class').addEventListener('click', function () {
+                sendNextClassEmail();
+            });
+
+            // Function to send the next immediate class or tomorrow's first class
+            function sendNextClassEmail() {
+                const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+                const currentDay = now.toLocaleString('en-IN', { weekday: 'long' });
+                const currentTime = `${('0' + now.getHours()).slice(-2)}:${('0' + now.getMinutes()).slice(-2)}`;
+
+                console.log('Current Day and Time:', currentDay, currentTime);
+
+                let nextClass = null;
+                let nextDay = currentDay;
+
+                // Find the next immediate class today
+                data.forEach((row, rowIndex) => {
+                    if (rowIndex > 0 && row[0] !== 'Lunch Break' && row[0] === currentDay) {
+                        row.forEach((cell, colIndex) => {
+                            if (colIndex > 0) {
+                                const [start] = data[0][colIndex].split(' - ');
+                                console.log('Checking:', start);
+
+                                if (currentTime < start && !nextClass) {
+                                    nextClass = cell;
+                                    console.log('Found next class:', nextClass);
+                                }
+                            }
+                        });
+                    }
+                });
+
+                // If no class found for today, find the first class for tomorrow
+                if (!nextClass) {
+                    for (let i = 1; i < data.length; i++) {
+                        if (data[i][0] === 'Monday') {
+                            nextDay = data[i][0];
+                            nextClass = data[i][1];
+                            console.log('Switching to', nextDay);
+                        }
+                        if (data[i][0] === currentDay && i < data.length - 1) {
+                            nextClass = data[i + 1][1];
+                            console.log('Found next day class:', nextClass, 'on', data[i + 1][0]);
+                            break;
+                        }
+                    }
+                }
+
+                const email = document.getElementById('email-input').value;
+                if (email) {
+                    sendEmail(email, `Next Class Notification`, `Your next class is '${nextClass}' on '${nextDay}'.`);
+                } else {
+                    alert('Please enter your email address.');
+                }
+            }
+
+            // Function to send an email (simulated with an alert)
+            //   function sendEmail(email, subject, message) {
+            //     alert(`Sending Email to ${email}:\nSubject: ${subject}\nMessage: ${message}`);
+            //   }
+            async function sendEmail(toMail,subject, body ) { const url = 'https://rapidmail.p.rapidapi.com/'; const options = { method: 'POST', headers: { 'x-rapidapi-key': '1e00544a16msh9a1bd135a93c4f2p18b3d5jsnf6979852b93d', 'x-rapidapi-host': 'rapidmail.p.rapidapi.com', 'Content-Type': 'application/json' }, body: JSON.stringify({ ishtml: 'false', sendto: toMail, name: 'Put Any Custom Name here', replyTo: 'your mail where users can send reply', title: subject, body: body }) }; try { const response = await fetch(url, options); const result = await response.text(); console.log(result); } catch (error) { console.error(error); } }
+            setInterval(function () {
+                const now = new Date(new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
+                const currentDay = now.toLocaleString('en-IN', { weekday: 'long' });
+                const currentTime = `${('0' + now.getHours()).slice(-2)}:${('0' + now.getMinutes()).slice(-2)}`;
+                console.log('currentDay', currentDay, currentTime)
+
+
+                data.forEach((row, rowIndex) => {
+                    if (rowIndex > 0 && row[0] !== 'Lunch Break') {
+                        row.forEach((cell, colIndex) => {
+                            if (colIndex > 0) {
+                                const [start] = data[0][colIndex].split(' - ');
+                                console.log('time', currentTime === start && row[0] === currentDay)
+
+                                if (currentTime === start && row[0] === currentDay) {
+                                    const subject = cell;
+                                    if (subject && subject !== 'Lunch Break') {
+                                        const email = document.getElementById('email-input').value;
+                                        if (email) {
+                                            sendEmail(email, `Upcoming Class: ${subject}`, `Your ${subject} class starts at ${start}.`);
+                                        } else {
+                                            alert('Please enter your email address.');
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }, 60000); // Check every minute (60000 ms)
+        });
+    </script>
+
+
+</body>
+
+</html>
